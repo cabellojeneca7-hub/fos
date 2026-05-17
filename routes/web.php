@@ -25,6 +25,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
 
+    // Payment/Checkout routes
+    Route::post('/checkout', [PaymentController::class, 'checkout'])->name('checkout.index');
+    Route::post('/checkout/process', [PaymentController::class, 'processMockPaypal'])->name('checkout.process');
+
     // Admin only routes
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);

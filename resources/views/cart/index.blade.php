@@ -88,7 +88,7 @@
                         </div>
                     </div>
 
-                    <form action="{{ route('orders.store') }}" method="POST" class="space-y-4">
+                    <form action="{{ route('checkout.index') }}" method="POST" class="space-y-4">
                         @csrf
                         <div>
                             <label class="block text-sm font-bold text-gray-700 mb-2">Customer Name</label>
@@ -96,7 +96,7 @@
                         </div>
                         
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-2xl transition shadow-lg shadow-blue-200 active:scale-95 text-lg">
-                            Place Order
+                            Review & Pay
                         </button>
                     </form>
                     
