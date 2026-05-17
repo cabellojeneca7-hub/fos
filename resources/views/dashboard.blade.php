@@ -69,7 +69,7 @@
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-2">
                         <span class="w-3 h-3 bg-blue-600 rounded-full"></span>
-                        <span class="text-xs text-gray-500 font-bold">₱15,000 This Month</span>
+                        <span class="text-xs text-gray-500 font-bold">Monthly Trend</span>
                     </div>
                 </div>
             </div>
@@ -78,28 +78,51 @@
             </div>
         </div>
 
-        <!-- Top Sellers -->
+        <!-- Inventory Alerts -->
         <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-50">
-            <h3 class="text-lg font-bold text-gray-800 mb-6">Weekly Top Seller</h3>
-            <div class="space-y-6">
-                @foreach($topSellers as $seller)
-                    <div class="flex items-center justify-between">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-lg font-bold text-gray-800">Inventory Alerts</h3>
+                @if($outOfStockCount > 0)
+                    <span class="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full">{{ $outOfStockCount }} Out of Stock</span>
+                @endif
+            </div>
+            
+            <div class="space-y-4">
+                @forelse($lowStockItems as $item)
+                    <div class="flex items-center justify-between p-3 rounded-2xl bg-orange-50 border border-orange-100">
                         <div class="flex items-center space-x-3">
-                            <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-blue-600 font-bold">
-                                {{ substr($seller->name, 0, 1) }}
+                            <div class="p-2 rounded-lg bg-white text-orange-600 shadow-sm">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                             </div>
                             <div>
-                                <div class="text-sm font-bold text-gray-800">{{ $seller->name }}</div>
-                                <div class="text-xs text-gray-500">{{ rand(10, 50) }} mins ago</div>
+                                <div class="text-xs font-bold text-gray-800">{{ $item->name }}</div>
+                                <div class="text-[10px] text-orange-600 font-medium">Only {{ $item->stock }} left</div>
                             </div>
                         </div>
-                        <div class="text-sm font-bold text-green-600">+{{ $seller->total_sold }}</div>
+                        <a href="{{ route('admin.menu-items.edit', $item) }}" class="text-[10px] font-bold text-blue-600 hover:underline">Restock</a>
                     </div>
-                @endforeach
+                @empty
+                    <div class="text-center py-8">
+                        <div class="bg-green-50 h-12 w-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                            <svg class="h-6 w-6 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <p class="text-xs text-gray-500">All items are well stocked!</p>
+                    </div>
+                @endforelse
             </div>
-            <button class="w-full mt-8 py-3 rounded-xl border-2 border-dashed border-gray-100 text-gray-400 text-sm font-bold hover:border-blue-200 hover:text-blue-400 transition">
-                Show More
-            </button>
+
+            <!-- Top Sellers List (Moved down) -->
+            <div class="mt-10">
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Top Sellers</h3>
+                <div class="space-y-4">
+                    @foreach($topSellers as $seller)
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-gray-700">{{ $seller->name }}</span>
+                            <span class="text-xs font-bold text-blue-600">{{ $seller->total_sold }} sold</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
         </div>
     </div>
 
