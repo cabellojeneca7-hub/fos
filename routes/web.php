@@ -19,6 +19,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/orders/{order}/receipt', [OrderController::class, 'generateReceipt'])->name('orders.receipt');
     Route::resource('orders', OrderController::class);
 
+    // Cart routes
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::patch('/cart/{cartItem}', [CartController::class, 'update'])->name('cart.update');
+    Route::delete('/cart/{cartItem}', [CartController::class, 'remove'])->name('cart.remove');
+
     // Admin only routes
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);
