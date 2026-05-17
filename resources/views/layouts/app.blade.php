@@ -13,7 +13,7 @@
 
         <!-- Tailwind CDN -->
         <script src="https://cdn.tailwindcss.com"></script>
-        
+
         <style>
             body { background-color: #f1f5f9; }
             .sidebar { background-color: #1e3a8a; }
@@ -34,7 +34,7 @@
                         </div>
                         <span class="text-2xl font-bold tracking-wider uppercase">Food Court</span>
                     </div>
-                    
+
                     <nav class="space-y-4">
                         <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 p-3 rounded-xl {{ request()->routeIs('dashboard') ? 'bg-white/10' : 'hover:bg-white/5' }} transition">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
@@ -74,12 +74,77 @@
 
             <!-- Main Content -->
             <main class="flex-1 flex flex-col min-w-0">
+                @php
+                    $routeName = request()->route()?->getName() ?? 'dashboard';
+                    $segmentLabels = [
+                        'dashboard' => 'Dashboard',
+                        'menu' => 'Menu',
+                        'orders' => 'Orders',
+                        'admin' => 'Admin',
+                        'menu-items' => 'Manage Menu',
+                        'users' => 'Employees',
+                        'profile' => 'Profile',
+                        'index' => 'List',
+                        'create' => 'Create',
+                        'edit' => 'Edit',
+                        'show' => 'Details',
+                        'receipt' => 'Receipt',
+                    ];
+
+                    $breadcrumbParts = collect(explode('.', $routeName))
+                        ->map(fn ($segment) => $segmentLabels[$segment] ?? str($segment)->replace('-', ' ')->title())
+                        ->values();
+                @endphp
+
                 <!-- Topbar -->
                 <header class="h-16 flex items-center justify-between px-8 bg-transparent">
-                    <div class="flex items-center space-x-4">
-                        <span class="text-gray-400">Application</span>
-                        <span class="text-gray-400">></span>
-                        <span class="text-gray-600 font-medium">Dashboard</span>
+                    <div class="flex items-center space-x-3 text-sm text-gray-400">
+                        @php
+                            $routeName = request()->route()?->getName() ?? 'dashboard';
+                            $segments = $routeName ? explode('.', $routeName) : [];
+                            $breadcrumbMap = [
+                                'dashboard' => ['label' => 'Application', 'route' => 'dashboard'],
+                                'menu' => ['label' => 'Menu', 'route' => 'menu.index'],
+                                'orders' => ['label' => 'Orders', 'route' => 'orders.index'],
+                                'admin' => ['label' => 'Admin', 'route' => null],
+                                'menu-items' => ['label' => 'Manage Menu', 'route' => 'admin.menu-items.index'],
+                                'users' => ['label' => 'Employees', 'route' => 'admin.users.index'],
+                                'profile' => ['label' => 'Profile', 'route' => 'profile.show'],
+                                'index' => ['label' => 'List', 'route' => null],
+                                'create' => ['label' => 'Create', 'route' => null],
+                                'edit' => ['label' => 'Edit', 'route' => null],
+                                'show' => ['label' => 'Details', 'route' => null],
+                                'receipt' => ['label' => 'Receipt', 'route' => null],
+                            ];
+                            $breadcrumbLinks = [];
+                            $accum = [];
+                            foreach ($segments as $i => $seg) {
+                                $accum[] = $seg;
+                                $info = $breadcrumbMap[$seg] ?? ['label' => ucfirst($seg), 'route' => null];
+                                $route = $info['route'] ?? null;
+                                $canLink = $route && Route::has($route);
+                                $breadcrumbLinks[] = [
+                                    'label' => $info['label'],
+                                    'route' => $canLink ? $route : null,
+                                ];
+                            }
+                        @endphp
+                        @if(count($breadcrumbLinks))
+                            @foreach($breadcrumbLinks as $i => $crumb)
+                                <span class="flex items-center">
+                                    @if($i > 0)
+                                        <span class="mx-1">&gt;</span>
+                                    @endif
+                                    @if($crumb['route'])
+                                        <a href="{{ route($crumb['route']) }}" class="hover:underline text-blue-600">{{ $crumb['label'] }}</a>
+                                    @else
+                                        <span class="{{ $loop->last ? 'text-gray-600 font-semibold' : 'text-gray-500' }}">{{ $crumb['label'] }}</span>
+                                    @endif
+                                </span>
+                            @endforeach
+                        @else
+                            <span>Application</span>
+                        @endif
                     </div>
 
                     <div class="flex items-center space-x-6">
