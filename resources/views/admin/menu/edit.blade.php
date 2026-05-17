@@ -12,7 +12,7 @@
 
     <div class="bg-white rounded-[2rem] shadow-sm overflow-hidden border border-gray-100 max-w-2xl">
         <div class="p-8">
-            <form method="POST" action="{{ route('admin.menu-items.update', $menuItem) }}">
+            <form method="POST" action="{{ route('admin.menu-items.update', $menuItem) }}" enctype="multipart/form-data">
                 @csrf
                 @method('PATCH')
 
@@ -48,8 +48,14 @@
                 </div>
 
                 <div class="mb-6">
-                    <x-input-label for="image" :value="__('Image URL')" />
-                    <x-text-input id="image" class="block mt-1 w-full bg-gray-50 border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-blue-500 shadow-inner" type="url" name="image" :value="old('image', $menuItem->image)" />
+                    <x-input-label for="image" :value="__('Product Image')" />
+                    @if($menuItem->image)
+                        <div class="mb-2">
+                            <img src="{{ $menuItem->image }}" alt="{{ $menuItem->name }}" class="h-20 w-20 object-cover rounded-lg border">
+                        </div>
+                    @endif
+                    <input id="image" name="image" type="file" class="block mt-1 w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                    <p class="mt-1 text-xs text-gray-400">Recommended: Square image, max 2MB (JPG, PNG, WebP)</p>
                     <x-input-error :messages="$errors->get('image')" class="mt-2" />
                 </div>
 
