@@ -86,6 +86,7 @@ class PaymentController extends Controller
 
             // 2. Create the Order with Payment Details
             $order = Order::create([
+                'user_id' => Auth::id(),
                 'customer_name' => $request->customer_name,
                 'subtotal' => $subtotal,
                 'tax_amount' => $taxAmount,

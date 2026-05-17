@@ -11,7 +11,12 @@
             return this.categories.map(category => {
                 return {
                     ...category,
-                    menu_items: category.menu_items.filter(item => {
+                    menu_items: category.menu_items.map(item => {
+                        // Calculate average rating
+                        const ratings = item.reviews || [];
+                        const avg = ratings.length ? (ratings.reduce((acc, r) => acc + r.rating, 0) / ratings.length).toFixed(1) : 0;
+                        return { ...item, avgRating: avg, totalReviews: ratings.length };
+                    }).filter(item => {
                         const matchesSearch = item.name.toLowerCase().includes(this.searchQuery.toLowerCase());
                         const matchesCategory = this.selectedCategory === 'all' || category.id == this.selectedCategory;
                         const matchesPrice = item.price <= this.maxPrice;
@@ -140,33 +145,69 @@
                                     </template>
                                 </div>
 
-                                <h4 class="font-bold text-xl text-gray-800 mb-2 px-2" x-text="item.name"></h4>
+                                <div class="flex items-center justify-between mb-2 px-2">
+                                    <h4 class="font-bold text-xl text-gray-800" x-text="item.name"></h4>
+                                    <template x-if="item.totalReviews > 0">
+                                        <div class="flex items-center space-x-1 text-yellow-500">
+                                            <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                            <span class="text-xs font-black" x-text="item.avgRating"></span>
+                                        </div>
+                                    </template>
+                                </div>
                                 
-                                <div class="mt-auto pt-4">
+                                <div class="mt-auto pt-4" x-data="{ showRate: false }">
                                     <template x-if="item.stock > 0">
                                         <div class="space-y-4">
-                                            <button @click="addToCart(item.id)" 
-                                                    :disabled="adding === item.id"
-                                                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-blue-100 active:scale-95 flex items-center justify-center space-x-2">
-                                                
-                                                <template x-if="adding !== item.id && (!message || message.itemId !== item.id || message.type !== 'success')">
-                                                    <div class="flex items-center space-x-2">
-                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                                        <span>Add to Cart</span>
+                                            <!-- Review Form Toggle -->
+                                            <div x-show="showRate" x-transition class="bg-gray-50 p-4 rounded-2xl mb-4 border border-gray-100">
+                                                <form :action="'/menu-items/' + item.id + '/reviews'" method="POST">
+                                                    @csrf
+                                                    <div class="flex justify-between items-center mb-3">
+                                                        <label class="text-[10px] font-black uppercase text-gray-400">Rate it</label>
+                                                        <div class="flex space-x-1">
+                                                            <template x-for="i in 5">
+                                                                <button type="button" @click="$root.querySelector('input[name=rating]').value = i" class="text-gray-300 hover:text-yellow-400 transition">
+                                                                    <svg class="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                                                </button>
+                                                            </template>
+                                                        </div>
+                                                        <input type="hidden" name="rating" value="5">
                                                     </div>
-                                                </template>
-
-                                                <template x-if="adding === item.id">
-                                                    <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                                </template>
-
-                                                <template x-if="message && message.itemId === item.id && message.type === 'success'">
-                                                    <div class="flex items-center space-x-2">
-                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                                                        <span>Added!</span>
+                                                    <textarea name="comment" placeholder="Any thoughts?" class="w-full text-xs bg-white border-none rounded-xl p-3 focus:ring-1 focus:ring-blue-500 shadow-inner mb-3" rows="2"></textarea>
+                                                    <div class="flex space-x-2">
+                                                        <button type="submit" class="flex-1 bg-gray-800 text-white text-[10px] font-black py-2 rounded-lg">Submit</button>
+                                                        <button type="button" @click="showRate = false" class="px-3 bg-white text-gray-400 text-[10px] font-black py-2 rounded-lg border border-gray-100">Cancel</button>
                                                     </div>
-                                                </template>
-                                            </button>
+                                                </form>
+                                            </div>
+
+                                            <div class="flex space-x-2">
+                                                <button @click="addToCart(item.id)" 
+                                                        :disabled="adding === item.id"
+                                                        class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-blue-100 active:scale-95 flex items-center justify-center space-x-2">
+                                                    
+                                                    <template x-if="adding !== item.id && (!message || message.itemId !== item.id || message.type !== 'success')">
+                                                        <div class="flex items-center space-x-2">
+                                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                                            <span>Add</span>
+                                                        </div>
+                                                    </template>
+
+                                                    <template x-if="adding === item.id">
+                                                        <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                    </template>
+
+                                                    <template x-if="message && message.itemId === item.id && message.type === 'success'">
+                                                        <div class="flex items-center space-x-2">
+                                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                            <span>Added!</span>
+                                                        </div>
+                                                    </template>
+                                                </button>
+                                                <button @click="showRate = !showRate" class="px-4 bg-white border border-gray-100 rounded-2xl text-gray-400 hover:text-yellow-500 hover:border-yellow-100 transition shadow-sm">
+                                                    <svg class="h-5 w-5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                                                </button>
+                                            </div>
                                             <div class="text-center">
                                                 <span class="text-[10px] font-black uppercase tracking-tighter" :class="item.stock < 10 ? 'text-red-500' : 'text-gray-300'">
                                                     Stock: <span x-text="item.stock"></span> Available
