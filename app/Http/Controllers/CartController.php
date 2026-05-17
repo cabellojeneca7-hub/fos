@@ -53,6 +53,9 @@ class CartController extends Controller
         if ($cartItem) {
             $newQuantity = $cartItem->quantity + $request->quantity;
             if ($menuItem->stock < $newQuantity) {
+                if ($request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => "Cannot add more. Only {$menuItem->stock} items in stock."], 422);
+                }
                 return redirect()->back()->with('error', "Cannot add more. Only {$menuItem->stock} items in stock.");
             }
             $cartItem->update(['quantity' => $newQuantity]);
@@ -60,6 +63,14 @@ class CartController extends Controller
             $cart->cartItems()->create([
                 'menu_item_id' => $menuItem->id,
                 'quantity' => $request->quantity,
+            ]);
+        }
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Item added to cart!',
+                'cartCount' => $cart->cartItems()->sum('quantity')
             ]);
         }
 
