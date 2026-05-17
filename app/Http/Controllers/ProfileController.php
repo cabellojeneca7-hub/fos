@@ -16,8 +16,14 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): View
     {
+        $orders = $request->user()->orders()
+            ->with('orderItems.menuItem')
+            ->latest()
+            ->get();
+
         return view('profile.edit', [
             'user' => $request->user(),
+            'orders' => $orders,
         ]);
     }
 

@@ -32,6 +32,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // KDS route
     Route::get('/kds', [KdsController::class, 'index'])->name('kds.index');
 
+    // Review route
+    Route::post('/menu-items/{menuItem}/reviews', [ReviewController::class, 'store'])->name('reviews.store');
+
     // Admin only routes
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);

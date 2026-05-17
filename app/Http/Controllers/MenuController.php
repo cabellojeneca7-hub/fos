@@ -9,7 +9,7 @@ class MenuController extends Controller
 {
     public function index(Request $request)
     {
-        $categories = Category::with('menuItems')->get();
+        $categories = Category::with('menuItems.reviews')->get();
         return view('menu.index', compact('categories'));
     }
 }

@@ -116,6 +116,12 @@ class OrderController extends Controller
     public function update(Request $request, Order $order)
     {
         $order->update(['status' => $request->status]);
+
+        // Notify user if attached, otherwise fallback to customer name logic
+        if ($order->user) {
+            $order->user->notify(new \App\Notifications\OrderStatusUpdated($order));
+        }
+
         return redirect()->back()->with('success', 'Order status updated!');
     }
 
