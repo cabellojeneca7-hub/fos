@@ -1,84 +1,203 @@
 <x-app-layout>
-    <div class="mb-8 flex justify-between items-end">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800">Food Menu</h1>
-            <p class="text-gray-500">Pick your favorite items and place your order.</p>
-        </div>
-        <div class="flex space-x-3">
-            <form action="{{ route('menu.index') }}" method="GET" class="relative">
-                <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Search menu items..." class="bg-white border-none rounded-xl py-2 px-4 pr-10 shadow-sm focus:ring-2 focus:ring-blue-500 w-64 text-sm">
-                <button type="submit" class="absolute right-3 top-2 text-gray-400">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </button>
-            </form>
-        </div>
-    </div>
+    <div x-data="{
+        categories: {{ $categories->toJson() }},
+        searchQuery: '',
+        selectedCategory: 'all',
+        maxPrice: 1000,
+        adding: null,
+        message: null,
+        
+        get filteredCategories() {
+            return this.categories.map(category => {
+                return {
+                    ...category,
+                    menu_items: category.menu_items.filter(item => {
+                        const matchesSearch = item.name.toLowerCase().includes(this.searchQuery.toLowerCase());
+                        const matchesCategory = this.selectedCategory === 'all' || category.id == this.selectedCategory;
+                        const matchesPrice = item.price <= this.maxPrice;
+                        return matchesSearch && matchesCategory && matchesPrice;
+                    })
+                };
+            }).filter(category => category.menu_items.length > 0);
+        },
 
-    @if(session('success'))
-        <div class="bg-blue-600 text-white px-6 py-4 rounded-2xl shadow-lg mb-8 flex items-center space-x-3">
-            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-            <span class="font-medium">{{ session('success') }}</span>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="bg-red-600 text-white px-6 py-4 rounded-2xl shadow-lg mb-8 flex items-center space-x-3">
-            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-            <span class="font-medium">{{ session('error') }}</span>
-        </div>
-    @endif
-
-    @foreach($categories as $category)
-        <div class="mb-12">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-gray-800 flex items-center">
-                    <span class="w-2 h-8 bg-blue-600 rounded-full mr-3"></span>
-                    {{ $category->name }}
-                </h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                @foreach($category->menuItems as $menuItem)
-                    <div class="bg-white rounded-[2rem] p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-transparent hover:border-blue-100 group {{ $menuItem->stock <= 0 ? 'opacity-75 grayscale-[0.5]' : '' }}">
-                        <div class="aspect-square bg-gray-50 rounded-[1.5rem] mb-6 flex items-center justify-center relative overflow-hidden">
-                            @if($menuItem->image)
-                                <img src="{{ $menuItem->image }}" alt="{{ $menuItem->name }}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
-                            @else
-                                <svg class="h-20 w-20 text-gray-200 group-hover:scale-110 transition duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                            @endif
-                            
-                            <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full text-blue-600 font-bold text-xs shadow-sm">
-                                ₱{{ number_format($menuItem->price, 2) }}
-                            </div>
+        async addToCart(itemId) {
+            this.adding = itemId;
+            try {
+                const response = await fetch('{{ route('cart.add') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=&quot;csrf-token&quot;]').content,
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        menu_item_id: itemId,
+                        quantity: 1
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.message = { type: 'success', text: data.message, itemId: itemId };
+                    window.dispatchEvent(new CustomEvent('cart-updated', { detail: { count: data.cartCount } }));
+                } else {
+                    this.message = { type: 'error', text: data.message, itemId: itemId };
+                }
+            } catch (error) {
+                this.message = { type: 'error', text: 'Something went wrong!', itemId: itemId };
+            } finally {
+                this.adding = null;
+                setTimeout(() => { if(this.message?.itemId === itemId) this.message = null; }, 3000);
+            }
+        }
+    }" class="pb-20">
+        
+        <!-- Header & Filters -->
+        <div class="mb-12 space-y-6">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight">Interactive Menu</h1>
+                    <p class="text-gray-500 mt-1">Discover our delicious items and add them to your cart instantly.</p>
+                </div>
+                
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="relative group">
+                        <input type="text" x-model="searchQuery" placeholder="Search deliciousness..." 
+                               class="bg-white border-none rounded-2xl py-3 px-5 pr-12 shadow-sm focus:ring-2 focus:ring-blue-500 w-full md:w-72 text-sm transition-all duration-300 group-hover:shadow-md">
+                        <div class="absolute right-4 top-3.5 text-gray-400">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
-
-                        <h4 class="font-bold text-lg text-gray-800 mb-4">{{ $menuItem->name }}</h4>
-                        
-                        <form action="{{ route('cart.add') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="menu_item_id" value="{{ $menuItem->id }}">
-                            <div class="space-y-4">
-                                <div class="flex items-center space-x-2">
-                                    <input type="number" name="quantity" value="1" min="1" max="{{ $menuItem->stock }}" class="w-20 bg-gray-50 border-none rounded-xl py-2 px-4 text-sm focus:ring-2 focus:ring-blue-500 shadow-inner font-bold text-center" {{ $menuItem->stock <= 0 ? 'disabled' : '' }}>
-                                    @if($menuItem->stock > 0)
-                                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition shadow-lg shadow-blue-200 active:scale-95">
-                                            Add to Cart
-                                        </button>
-                                    @else
-                                        <button type="button" disabled class="flex-1 bg-gray-200 text-gray-500 font-bold py-2 px-4 rounded-xl cursor-not-allowed">
-                                            Out of Stock
-                                        </button>
-                                    @endif
-                                </div>
-                                <div class="text-center mt-2">
-                                    <span class="text-xs font-bold {{ $menuItem->stock < 10 ? 'text-red-500' : 'text-gray-400' }}">
-                                        Available Stock: {{ $menuItem->stock }}
-                                    </span>
-                                </div>
-                            </div>
-                        </form>
                     </div>
-                @endforeach
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-6 bg-white p-6 rounded-[2rem] shadow-sm border border-gray-50">
+                <div class="flex flex-col space-y-2">
+                    <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Category</label>
+                    <select x-model="selectedCategory" class="bg-gray-50 border-none rounded-xl py-2 px-4 text-sm focus:ring-2 focus:ring-blue-500 shadow-inner min-w-[150px]">
+                        <option value="all">All Categories</option>
+                        <template x-for="cat in categories" :key="cat.id">
+                            <option :value="cat.id" x-text="cat.name"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div class="flex-1 min-w-[200px] flex flex-col space-y-2">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-bold text-gray-400 uppercase tracking-wider">Max Price</label>
+                        <span class="text-sm font-bold text-blue-600" x-text="'₱' + maxPrice"></span>
+                    </div>
+                    <input type="range" x-model="maxPrice" min="0" max="2000" step="10" 
+                           class="w-full h-2 bg-gray-100 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                </div>
             </div>
         </div>
-    @endforeach
+
+        <!-- Notification Toast -->
+        <template x-if="message && !message.itemId">
+            <div x-transition class="fixed bottom-8 right-8 z-50 flex items-center space-x-3 px-6 py-4 rounded-2xl shadow-2xl text-white"
+                 :class="message.type === 'success' ? 'bg-blue-600' : 'bg-red-600'">
+                <svg x-show="message.type === 'success'" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <svg x-show="message.type === 'error'" class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="font-bold" x-text="message.text"></span>
+            </div>
+        </template>
+
+        <!-- Menu Display -->
+        <div class="space-y-16">
+            <template x-for="category in filteredCategories" :key="category.id">
+                <div x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 transform translate-y-4" x-transition:enter-end="opacity-100 transform translate-y-0">
+                    <div class="flex items-center mb-8">
+                        <div class="w-2 h-10 bg-blue-600 rounded-full mr-4 shadow-lg shadow-blue-200"></div>
+                        <h3 class="text-2xl font-bold text-gray-800" x-text="category.name"></h3>
+                        <div class="ml-4 flex-1 h-[1px] bg-gray-100"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                        <template x-for="item in category.menu_items" :key="item.id">
+                            <div class="bg-white rounded-[2.5rem] p-6 shadow-sm hover:shadow-2xl transition-all duration-500 border border-transparent hover:border-blue-50 group flex flex-col"
+                                 :class="item.stock <= 0 ? 'opacity-80' : ''">
+                                
+                                <div class="aspect-square bg-gray-50 rounded-[2rem] mb-6 flex items-center justify-center relative overflow-hidden">
+                                    <template x-if="item.image">
+                                        <img :src="item.image" :alt="item.name" class="w-full h-full object-cover group-hover:scale-110 transition duration-700">
+                                    </template>
+                                    <template x-if="!item.image">
+                                        <svg class="h-20 w-20 text-gray-200 group-hover:scale-110 transition duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                    </template>
+                                    
+                                    <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl text-blue-600 font-black text-sm shadow-sm border border-white/50">
+                                        ₱<span x-text="Number(item.price).toLocaleString(undefined, {minimumFractionDigits: 2})"></span>
+                                    </div>
+
+                                    <!-- Out of Stock Overlay -->
+                                    <template x-if="item.stock <= 0">
+                                        <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px] flex items-center justify-center">
+                                            <span class="bg-white/90 text-gray-900 px-6 py-2 rounded-full font-black text-xs uppercase tracking-widest shadow-xl">Out of Stock</span>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <h4 class="font-bold text-xl text-gray-800 mb-2 px-2" x-text="item.name"></h4>
+                                
+                                <div class="mt-auto pt-4">
+                                    <template x-if="item.stock > 0">
+                                        <div class="space-y-4">
+                                            <button @click="addToCart(item.id)" 
+                                                    :disabled="adding === item.id"
+                                                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 shadow-xl shadow-blue-100 active:scale-95 flex items-center justify-center space-x-2">
+                                                
+                                                <template x-if="adding !== item.id && (!message || message.itemId !== item.id || message.type !== 'success')">
+                                                    <div class="flex items-center space-x-2">
+                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                                        <span>Add to Cart</span>
+                                                    </div>
+                                                </template>
+
+                                                <template x-if="adding === item.id">
+                                                    <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                </template>
+
+                                                <template x-if="message && message.itemId === item.id && message.type === 'success'">
+                                                    <div class="flex items-center space-x-2">
+                                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                                        <span>Added!</span>
+                                                    </div>
+                                                </template>
+                                            </button>
+                                            <div class="text-center">
+                                                <span class="text-[10px] font-black uppercase tracking-tighter" :class="item.stock < 10 ? 'text-red-500' : 'text-gray-300'">
+                                                    Stock: <span x-text="item.stock"></span> Available
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <template x-if="item.stock <= 0">
+                                        <button disabled class="w-full bg-gray-100 text-gray-400 font-bold py-4 px-6 rounded-2xl cursor-not-allowed">
+                                            Unavailable
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Empty State -->
+        <template x-if="filteredCategories.length === 0">
+            <div class="bg-white rounded-[3rem] p-20 text-center shadow-sm border border-gray-100 mt-10">
+                <div class="bg-gray-50 h-24 w-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 9.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">No items found</h3>
+                <p class="text-gray-500 mt-2">Try adjusting your search or filters to find what you're looking for.</p>
+                <button @click="searchQuery = ''; selectedCategory = 'all'; maxPrice = 2000" class="mt-8 text-blue-600 font-bold hover:underline">Clear all filters</button>
+            </div>
+        </template>
+    </div>
 </x-app-layout>

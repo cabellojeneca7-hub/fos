@@ -35,7 +35,9 @@
                         <span class="text-2xl font-bold tracking-wider uppercase">Food Court</span>
                     </div>
 
-                    <nav class="space-y-4">
+                    <nav class="space-y-4" x-data="{ 
+                        cartCount: {{ \App\Models\Cart::where(auth()->check() ? ['user_id' => auth()->id()] : ['session_id' => session()->getId()])->first()?->cartItems()->sum('quantity') ?? 0 }} 
+                    }" @cart-updated.window="cartCount = $event.detail.count">
                         <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 p-3 rounded-xl {{ request()->routeIs('dashboard') ? 'bg-white/10' : 'hover:bg-white/5' }} transition">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
                             <span>Dashboard</span>
@@ -43,6 +45,15 @@
                         <a href="{{ route('menu.index') }}" class="flex items-center space-x-3 p-3 rounded-xl {{ request()->routeIs('menu.*') ? 'bg-white/10' : 'hover:bg-white/5' }} transition">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
                             <span>Menu</span>
+                        </a>
+                        <a href="{{ route('cart.index') }}" class="flex items-center justify-between p-3 rounded-xl {{ request()->routeIs('cart.*') ? 'bg-white/10' : 'hover:bg-white/5' }} transition">
+                            <div class="flex items-center space-x-3">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                <span>Cart</span>
+                            </div>
+                            <template x-if="cartCount > 0">
+                                <span class="bg-blue-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full" x-text="cartCount"></span>
+                            </template>
                         </a>
                         <a href="{{ route('orders.index') }}" class="flex items-center space-x-3 p-3 rounded-xl {{ request()->routeIs('orders.*') ? 'bg-white/10' : 'hover:bg-white/5' }} transition">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
