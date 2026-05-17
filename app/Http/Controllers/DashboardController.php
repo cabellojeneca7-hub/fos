@@ -37,13 +37,23 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        // 4. Low Stock Alerts (Stock <= 10)
+        $lowStockItems = MenuItem::where('stock', '<=', 10)
+            ->where('stock', '>', 0)
+            ->orderBy('stock', 'asc')
+            ->get();
+        
+        $outOfStockCount = MenuItem::where('stock', '<=', 0)->count();
+
         return view('dashboard', compact(
             'itemSales', 
             'newOrders', 
             'totalProducts', 
             'uniqueVisitors',
             'salesData',
-            'topSellers'
+            'topSellers',
+            'lowStockItems',
+            'outOfStockCount'
         ));
     }
 }

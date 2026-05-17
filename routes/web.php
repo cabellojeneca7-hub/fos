@@ -29,6 +29,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/checkout', [PaymentController::class, 'checkout'])->name('checkout.index');
     Route::post('/checkout/process', [PaymentController::class, 'processMockPaypal'])->name('checkout.process');
 
+    // KDS route
+    Route::get('/kds', [KdsController::class, 'index'])->name('kds.index');
+
     // Admin only routes
     Route::middleware(['admin'])->prefix('admin')->name('admin.')->group(function () {
         Route::resource('users', UserController::class);
