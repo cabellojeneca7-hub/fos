@@ -53,16 +53,15 @@
 
                         <h4 class="font-bold text-lg text-gray-800 mb-4">{{ $menuItem->name }}</h4>
                         
-                        <form action="{{ route('orders.store') }}" method="POST">
+                        <form action="{{ route('cart.add') }}" method="POST">
                             @csrf
                             <input type="hidden" name="menu_item_id" value="{{ $menuItem->id }}">
                             <div class="space-y-4">
-                                <input type="text" name="customer_name" placeholder="Customer Name" class="w-full bg-gray-50 border-none rounded-xl py-2 px-4 text-sm focus:ring-2 focus:ring-blue-500 shadow-inner" {{ $menuItem->stock <= 0 ? 'disabled' : '' }}>
                                 <div class="flex items-center space-x-2">
                                     <input type="number" name="quantity" value="1" min="1" max="{{ $menuItem->stock }}" class="w-20 bg-gray-50 border-none rounded-xl py-2 px-4 text-sm focus:ring-2 focus:ring-blue-500 shadow-inner font-bold text-center" {{ $menuItem->stock <= 0 ? 'disabled' : '' }}>
                                     @if($menuItem->stock > 0)
                                         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl transition shadow-lg shadow-blue-200 active:scale-95">
-                                            Order Now
+                                            Add to Cart
                                         </button>
                                     @else
                                         <button type="button" disabled class="flex-1 bg-gray-200 text-gray-500 font-bold py-2 px-4 rounded-xl cursor-not-allowed">
